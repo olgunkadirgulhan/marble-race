@@ -49,7 +49,7 @@ def race_info(pos, fin_x, fin_z, fin_dir, top_z, tray_z):
     for f in range(len(leaders)):
         if leaders[f] != cur:
             held += 1
-            if held >= FPS // 2:
+            if held >= FPS:
                 changes += 1
                 cur = leaders[f]
                 held = 0

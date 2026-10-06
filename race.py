@@ -217,7 +217,7 @@ for sec in seq:
             if all(math.hypot(x_ - a, z_ - b) > 0.95 for a, b in pts):
                 pts.append((x_, z_))
         for x_, z_ in pts:
-            statics.append(cyl_y(f"bumper{len(statics)}", x_, z_, rnd.uniform(0.17, 0.24), bumper_m, bounce=0.95))
+            statics.append(cyl_y(f"bumper{len(statics)}", x_, z_, rnd.uniform(0.17, 0.24), bumper_m, bounce=1.0))
         z = top - 2.75
         d = 1 if rnd.random() < 0.5 else -1
     elif sec == "funnel":
@@ -340,6 +340,9 @@ if SIM:
     rw.solver_iterations = 25
     rw.point_cache.frame_start = 1
     rw.point_cache.frame_end = NF
+    # light, lively marbles: stronger gravity makes the big scene move like small glass marbles
+    scene.use_gravity = True
+    scene.gravity = (0, 0, -9.81 * 1.9)
     bpy.ops.object.select_all(action="DESELECT")
     for o in statics + [gate] + spin_objs:
         if not o.get("phys"):
@@ -349,8 +352,8 @@ if SIM:
         bpy.ops.rigidbody.object_add(type="PASSIVE")
         rb = o.rigid_body
         rb.collision_shape = {"cyl": "CYLINDER", "mesh": "MESH"}.get(o["phys"], "BOX")
-        rb.friction = 0.4
-        rb.restitution = o.get("bounce", 0.4)
+        rb.friction = 0.3
+        rb.restitution = o.get("bounce", 0.62)
         rb.collision_margin = 0.002
         o.select_set(False)
     for o in [gate] + spin_objs:
@@ -374,10 +377,10 @@ if SIM:
         rb = o.rigid_body
         rb.collision_shape = "SPHERE"
         rb.mass = 0.08
-        rb.friction = 0.4
-        rb.restitution = 0.6
-        rb.linear_damping = 0.02
-        rb.angular_damping = 0.06
+        rb.friction = 0.3
+        rb.restitution = 0.9
+        rb.linear_damping = 0.01
+        rb.angular_damping = 0.04
         rb.collision_margin = 0.002
         rb.use_deactivation = False
         rb.kinematic = True
