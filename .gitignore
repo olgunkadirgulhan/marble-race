@@ -1,0 +1,12 @@
+sim_*.npz
+frames*/
+fr/
+hud_*/
+pv*/
+*.mp4
+*.wav
+parts.txt
+__pycache__/
+blender/
+chunks/
+dl_*/

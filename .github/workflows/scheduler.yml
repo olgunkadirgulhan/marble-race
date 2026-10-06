@@ -1,0 +1,53 @@
+name: scheduler
+# Daily: queue tomorrow's 3 Shorts (rendered ~1 day ahead).
+# Publish slots (UTC): 15:00, 20:00, 23:30  (US afternoon / evening, EU evening)
+on:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Run as if today were this date (YYYY-MM-DD); empty = today"
+        required: false
+      today_shorts:
+        description: "Also queue Shorts for TODAY's remaining slots"
+        type: boolean
+        default: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Dispatch productions
+        run: |
+          python3 - <<'PY' > jobs.txt
+          import datetime, os
+          now = datetime.datetime.now(datetime.timezone.utc)
+          d = datetime.date.fromisoformat(os.environ["D"]) if os.environ.get("D") else now.date()
+          slots = ["15:00", "20:00", "23:30"]
+          days = [d + datetime.timedelta(days=1)]
+          if os.environ.get("TODAY") == "true":
+              days.insert(0, d)
+          for day in days:
+              for k, s in enumerate(slots, 1):
+                  at = datetime.datetime.fromisoformat(f"{day}T{s}:00+00:00")
+                  if day == d and at < now + datetime.timedelta(hours=2, minutes=30):
+                      at = now + datetime.timedelta(hours=2, minutes=30)  # cannot be rendered sooner
+                  print(f"short:{day}:{k} {at.strftime('%Y-%m-%dT%H:%M:%SZ')}")
+          PY
+          cat jobs.txt
+          while read -r cfg at; do
+            gh workflow run produce.yml -R "$GITHUB_REPOSITORY" -f cfg="$cfg" -f publish_at="$at"
+            sleep 5
+          done < jobs.txt
+        env:
+          D: ${{ inputs.date }}
+          TODAY: ${{ inputs.today_shorts }}

@@ -1,0 +1,146 @@
+name: produce
+# One Short: simulate several races (Blender rigid bodies), keep the most exciting one,
+# render it in parallel chunks (Eevee, software GL), add HUD + sound, upload with a scheduled publishAt.
+on:
+  workflow_dispatch:
+    inputs:
+      cfg:
+        description: "short:YYYY-MM-DD:K"
+        required: true
+      publish_at:
+        description: "UTC time to go public, e.g. 2026-10-08T15:00:00Z"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  RACE_CFG: ${{ inputs.cfg }}
+  PYTHONUTF8: "1"
+  BLENDER_URL: https://download.blender.org/release/Blender4.5/blender-4.5.14-linux-x64.tar.xz
+  CHUNKS: "8"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      chunks: ${{ steps.p.outputs.chunks }}
+      tag: ${{ steps.p.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install numpy pillow imageio-ffmpeg
+      - uses: actions/cache@v4
+        with:
+          path: blender
+          key: blender-4.5.14
+      - run: |
+          if [ ! -x blender/blender ]; then mkdir -p blender && curl -sSL $BLENDER_URL | tar -xJ --strip-components=1 -C blender; fi
+      - name: Simulate variants and pick the best race
+        run: BLENDER=blender/blender PY=python K=6 ./sims.sh
+      - id: p
+        run: |
+          END=$(python post.py --end)
+          python - "$END" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+          end, n = int(sys.argv[1]), int(os.environ["CHUNKS"])
+          r = [[1 + end * k // n, 1 + end * (k + 1) // n] for k in range(n)]
+          print("chunks=" + json.dumps([{"i": k, "a": a, "b": b} for k, (a, b) in enumerate(r)]))
+          print("tag=" + os.environ["RACE_CFG"].replace(":", "_"))
+          PY
+      - uses: actions/upload-artifact@v5
+        with:
+          name: sim-${{ steps.p.outputs.tag }}
+          path: sim_${{ steps.p.outputs.tag }}.npz
+          retention-days: 3
+
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJson(needs.plan.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install numpy pillow imageio-ffmpeg
+      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends xvfb libgl1 libegl1 libgl1-mesa-dri libxi6 libxrender1 libxkbcommon0 libsm6 libxxf86vm1 libxfixes3
+      - uses: actions/cache@v4
+        with:
+          path: blender
+          key: blender-4.5.14
+      - run: |
+          if [ ! -x blender/blender ]; then mkdir -p blender && curl -sSL $BLENDER_URL | tar -xJ --strip-components=1 -C blender; fi
+      - uses: actions/download-artifact@v5
+        with:
+          name: sim-${{ needs.plan.outputs.tag }}
+      - name: Render frames
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" blender/blender -b -P race.py -- --out fr --res 1080 \
+            --start ${{ matrix.chunk.a }} --end $(( ${{ matrix.chunk.b }} - 1 )) --samples 16 2>&1 | grep -E "Error|Traceback|^Time" | tail -5
+          test "$(ls fr | wc -l)" -eq $(( ${{ matrix.chunk.b }} - ${{ matrix.chunk.a }} ))
+      - name: Overlay HUD + encode chunk
+        env:
+          FRAMES_DIR: fr
+        run: python post.py --range ${{ matrix.chunk.a }} ${{ matrix.chunk.b }} chunk_$(printf %03d ${{ matrix.chunk.i }}).mp4
+      - uses: actions/upload-artifact@v5
+        with:
+          name: chunk-${{ needs.plan.outputs.tag }}-${{ matrix.chunk.i }}
+          path: chunk_*.mp4
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: [plan, render]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: repo-writes
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v5
+        with:
+          name: sim-${{ needs.plan.outputs.tag }}
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: chunk-${{ needs.plan.outputs.tag }}-*
+          path: chunks
+      - name: Assemble and upload
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
+        run: python publish.py chunks "${{ inputs.publish_at }}"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: video-${{ needs.plan.outputs.tag }}
+          path: final_*.mp4
+          retention-days: 7
+      - name: Record
+        run: |
+          [ -d records ] || exit 0
+          git config user.name "marble-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A records
+          git diff --cached --quiet && exit 0
+          git commit -m "records: $RACE_CFG"
+          for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((RANDOM % 20 + 5)); done
+          exit 1
