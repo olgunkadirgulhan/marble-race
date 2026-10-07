@@ -3,7 +3,11 @@ name: scheduler
 # Publish slots (UTC): 15:00, 20:00, 23:30  (US afternoon / evening, EU evening)
 on:
   schedule:
+    # GitHub cron bazen atlıyor: günde 4 deneme; zaten kuyruğa alınmış videolar atlanır
     - cron: "23 6 * * *"
+    - cron: "47 9 * * *"
+    - cron: "13 13 * * *"
+    - cron: "37 17 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -44,7 +48,11 @@ jobs:
                   print(f"short:{day}:{k} {at.strftime('%Y-%m-%dT%H:%M:%SZ')}")
           PY
           cat jobs.txt
+          gh run list -R "$GITHUB_REPOSITORY" -w produce.yml -L 100 --json displayTitle -q '.[].displayTitle' > done.txt || true
           while read -r cfg at; do
+            if grep -qxF "produce $cfg" done.txt || [ -f "records/published/${cfg//:/_}.csv" ] || [ -f "records/pending/${cfg//:/_}.csv" ]; then
+              echo "skip $cfg (already queued/done)"; continue
+            fi
             gh workflow run produce.yml -R "$GITHUB_REPOSITORY" -f cfg="$cfg" -f publish_at="$at"
             sleep 5
           done < jobs.txt

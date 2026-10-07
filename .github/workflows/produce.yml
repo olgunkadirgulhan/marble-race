@@ -1,4 +1,5 @@
 name: produce
+run-name: produce ${{ inputs.cfg }}
 # One Short: simulate several races (Blender rigid bodies), keep the most exciting one,
 # render it in parallel chunks (Eevee, software GL), add HUD + sound, upload with a scheduled publishAt.
 on:
