@@ -93,6 +93,15 @@ def main():
         ids[key] = p['id']; print(f'✓ oynatma listesi: {title}', flush=True)
     PLAYLISTS_FILE.write_text(json.dumps(ids, indent=2) + '\n')
 
+    import csv, glob  # daha önce yüklenen videoları listelere ekle (tekrar eklemez)
+    for f in glob.glob(str(ROOT / 'records' / 'published' / '*.csv')):
+        _, vid, _, title = next(csv.reader(open(f)))[:4]
+        for k in ('all', 'colors' if 'color' in title.lower() else 'countries'):
+            have = yt.playlistItems().list(part='contentDetails', playlistId=ids[k], maxResults=50).execute().get('items', [])
+            if not any(i['contentDetails']['videoId'] == vid for i in have):
+                step(f'liste {k} <- {vid}', lambda: yt.playlistItems().insert(part='snippet', body={'snippet': {
+                    'playlistId': ids[k], 'resourceId': {'kind': 'youtube#video', 'videoId': vid}}}).execute())
+
     if not ids.get('_sections_done'):
         wanted = [('recentUploads', ())] + [('singlePlaylist', (ids[k],)) for k in SECTIONS if k in ids]
         for pos, (stype, pls) in enumerate(wanted):
