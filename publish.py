@@ -31,6 +31,7 @@ def assemble(chunks_dir):
 
 
 def yt():
+    import yt_retry  # noqa: F401  geçici 401'leri tekrar dener
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     creds = Credentials(None, refresh_token=os.environ["YT_REFRESH_TOKEN"], client_id=os.environ["YT_CLIENT_ID"],

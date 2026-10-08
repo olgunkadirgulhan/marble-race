@@ -28,6 +28,9 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import yt_retry  # noqa: E402,F401  geçici 401'leri tekrar dener
+
 STATE = Path(os.environ.get('STATE_FILE', 'comment_replies.json'))
 REQUESTS = Path(os.environ.get('REQUESTS_FILE', 'viewer_requests.json'))
 ASKS = re.compile(r'(make|do (a|one)|next|can you|could you|please|video (about|on)|part 2|more of|'

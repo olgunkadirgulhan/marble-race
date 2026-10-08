@@ -14,6 +14,9 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import yt_retry  # noqa: E402,F401  geçici 401'leri tekrar dener
+
 ROOT = Path(__file__).resolve().parent.parent
 CH = ROOT / 'channel'
 PLAYLISTS_FILE = ROOT / 'playlists.json'
