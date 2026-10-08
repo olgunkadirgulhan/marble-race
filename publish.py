@@ -78,11 +78,21 @@ def upload(mp4, publish_at, thumb=None):
         mine = client.channels().list(part="id", mine=True).execute()["items"][0]["id"]
         if mine != want:
             sys.exit(f"token belongs to {mine}, expected {want}")
-    req = client.videos().insert(part="snippet,status", body=body,
-                                 media_body=MediaFileUpload(mp4, mimetype="video/mp4", resumable=True, chunksize=-1))
-    resp = None
-    while resp is None:
-        _, resp = req.next_chunk()
+    import time
+    for attempt in range(4):  # Google arada geçici 401 veriyor (özellikle yeni tokenlarda): yeni bağlantıyla tekrar
+        try:
+            req = client.videos().insert(part="snippet,status", body=body, media_body=MediaFileUpload(
+                mp4, mimetype="video/mp4", resumable=True, chunksize=-1))
+            resp = None
+            while resp is None:
+                _, resp = req.next_chunk()
+            break
+        except Exception as e:  # noqa: BLE001
+            if "401" not in str(e) or attempt == 3:
+                raise
+            print("transient 401, retrying", attempt + 1, flush=True)
+            time.sleep(20 * (attempt + 1))
+            client = yt()
     vid = resp["id"]
     add_to_playlists(client, vid)
     if thumb and os.path.exists(thumb):
