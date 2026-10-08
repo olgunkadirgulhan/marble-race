@@ -5,8 +5,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 files = sorted(glob.glob(os.path.join(HERE, "records", "pending", "*.csv")))
 now = datetime.datetime.now(datetime.timezone.utc)
 k = 0
+k_up = 0
 for path in files:
     cfg, at, run_id, tag = next(csv.reader(open(path)))
+    if datetime.datetime.fromisoformat(at.replace("Z", "+00:00")) - now > datetime.timedelta(hours=30):
+        continue  # günlük API kotası: slotuna 30 saatten fazla varsa sonraki günün kotasıyla yükle
+    if k_up >= int(os.environ.get("MAX_UPLOADS", "3")):
+        break
     d = os.path.join(HERE, "dl_" + tag)
     if subprocess.run(["gh", "run", "download", run_id, "-n", "video-" + tag, "-D", d]).returncode:
         print("artifact missing for", cfg)
@@ -20,3 +25,4 @@ for path in files:
                         when.strftime("%Y-%m-%dT%H:%M:%SZ")], env=env, cwd=HERE)
     if r.returncode == 0:
         os.remove(path)
+        k_up += 1

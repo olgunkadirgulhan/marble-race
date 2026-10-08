@@ -48,7 +48,9 @@ jobs:
                   print(f"short:{day}:{k} {at.strftime('%Y-%m-%dT%H:%M:%SZ')}")
           PY
           cat jobs.txt
-          gh run list -R "$GITHUB_REPOSITORY" -w produce.yml -L 100 --json displayTitle -q '.[].displayTitle' > done.txt || true
+          # iptal edilen / başarısız üretimler sayılmaz: yeniden kuyruğa alınır
+          gh run list -R "$GITHUB_REPOSITORY" -w produce.yml -L 100 --json displayTitle,conclusion \
+            -q '.[] | select(.conclusion != "cancelled" and .conclusion != "failure") | .displayTitle' > done.txt || true
           while read -r cfg at; do
             if grep -qxF "produce $cfg" done.txt || [ -f "records/published/${cfg//:/_}.csv" ] || [ -f "records/pending/${cfg//:/_}.csv" ]; then
               echo "skip $cfg (already queued/done)"; continue
