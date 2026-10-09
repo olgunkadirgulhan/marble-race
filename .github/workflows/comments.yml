@@ -35,7 +35,7 @@ jobs:
           STATE_FILE: comment_replies.json
           REQUESTS_FILE: viewer_requests.json
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          FIRST_QUESTIONS: '["Which marble were you cheering for? 👀", "Did your pick make the top 3? 🏁", "Which country should race next? 🌍", "Rate this track from 1 to 10 🎢", "Which obstacle was the craziest? 🤯", "Did you guess the winner before the finish? 🤔", "What's your lucky marble color? 🎨", "Bumpers or funnels: which part was better? ⚡", "Should the next track be longer? 🛤️", "Comment your country and we'll put it in a race! 🌍", "Who had the worst luck in this race? 😅", "How many times did the lead change for you? 🔄", "Which marble deserved to win? 🏆", "Watch it again: did you spot the big comeback? 👀", "Pick your marble for the next race 👇"]'
+          FIRST_QUESTIONS: '["Which marble were you cheering for? 👀", "Did your pick make the top 3? 🏁", "Which country should race next? 🌍", "Rate this track from 1 to 10 🎢", "Which obstacle was the craziest? 🤯", "Did you guess the winner before the finish? 🤔", "What''s your lucky marble color? 🎨", "Bumpers or funnels: which part was better? ⚡", "Should the next track be longer? 🛤️", "Comment your country and we''ll put it in a race! 🌍", "Who had the worst luck in this race? 😅", "How many times did the lead change for you? 🔄", "Which marble deserved to win? 🏆", "Watch it again: did you spot the big comeback? 👀", "Pick your marble for the next race 👇"]'
         run: python tools/auto_reply.py
       - run: |
           git config user.name "comment-bot"
