@@ -269,12 +269,84 @@ def synth_audio(path):
         i0 = int((wt + k * 0.12) * SR)
         out[i0:i0 + len(nb_)] += nb_[:len(out) - i0]
     out = out[:int(END / FPS * SR)]
+    try:
+        vo = commentary(len(out), rs)
+        env_ = np.convolve(np.abs(vo), np.ones(int(SR * 0.3)) / int(SR * 0.3), mode="same")
+        out = out * (1 - 0.6 * np.clip(env_ / (env_.max() + 1e-9) * 4, 0, 1)) + vo   # spiker konuşurken her şey kısılır
+    except Exception as e:  # noqa: BLE001 — spiker olmadan da video çıkar
+        print("commentary skipped:", str(e)[:200], flush=True)
     out = np.tanh(out * 1.1) * 0.9
     with wave.open(path, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(SR)
         w.writeframes((out * 32767).astype(np.int16).tobytes())
+
+
+VOICES = ["en-US-GuyNeural", "en-US-ChristopherNeural", "en-GB-RyanNeural", "en-US-EricNeural"]
+
+
+def spoken(i):
+    lab = LABELS[i]
+    return lab.title() if T.THEME != "countries" else lab
+
+
+def commentary_lines(rs):
+    """Yarış verisinden spiker cümleleri: [(saniye, metin)] — başlangıç, lider değişimleri, final, kazanan, ikinci."""
+    pick = lambda xs: xs[rs.randint(0, len(xs))]
+    gate, win_t, end = GATE_T, WIN_F / FPS, END / FPS
+    n_word = {8: "Eight", 10: "Ten"}.get(N, str(N))
+    kind = "countries" if T.THEME == "countries" else "colors"
+    ev = [(max(0.3, gate - 3.3), pick([f"{n_word} {kind}. One winner. Pick yours now!", "Who wins this one? Pick fast!",
+                                         f"Choose your {kind[:-1] if kind == 'colors' else 'country'}! Here we go!"])),
+          (gate + 0.15, pick(["And they are off!", "Go, go, go!", "Here we go!", "And the race is on!"]))]
+    rank = INFO["rank"]
+    cur, held, last = int(rank[int(gate * FPS), 0]), 0, gate
+    for f in range(int(gate * FPS), max(int(gate * FPS), WIN_F - int(2.5 * FPS))):
+        lead = int(rank[f, 0])
+        held = held + 1 if lead != cur else 0
+        if held >= FPS:
+            cur, held = lead, 0
+            if f / FPS - last > 2.4:
+                ev.append((f / FPS - 0.6, pick(["{} takes the lead!", "{} moves to the front!", "Look at {}!", "{} is flying!"]).format(spoken(lead))))
+                last = f / FPS
+    if len(ev) < 3:
+        mid = (gate + win_t) / 2
+        ev.append((mid, pick(["{} is in front!", "{} leads the pack!"]).format(spoken(int(rank[int(mid * FPS), 0])))))
+    ev.append((win_t - 2.2, pick(["Here comes the finish!", "Final stretch!", "It is close!"])))
+    ev.append((win_t + 0.15, pick(["{} wins it!", "{} takes the crown!", "Victory for {}!"]).format(spoken(ORDER[0]))))
+    if len(ORDER) > 1:
+        ev.append((win_t + 1.9, pick(["{} grabs second!", "Second place: {}!"]).format(spoken(ORDER[1]))))
+    return [(t, txt) for t, txt in sorted(ev) if 0.2 <= t < end - 0.8]
+
+
+def tts(text, voice):
+    import asyncio, tempfile
+    import edge_tts
+    mp3 = tempfile.mktemp(suffix=".mp3"); wav = mp3[:-4] + ".wav"
+    asyncio.run(edge_tts.Communicate(text, voice, rate="+12%").save(mp3))
+    subprocess.run([ffmpeg(), "-y", "-v", "error", "-i", mp3, "-ar", str(SR), "-ac", "1", wav], check=True)
+    with wave.open(wav) as w:
+        x = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float64) / 32768
+    nz = np.nonzero(np.abs(x) > 0.01)[0]
+    return x[nz[0]:nz[-1]] if len(nz) else x
+
+
+def commentary(n, rs):
+    """Spiker izi (n örnek): cümleler üst üste binmez, sığmayan atlanır."""
+    voice = VOICES[T.SEED % len(VOICES)]
+    vo = np.zeros(n); free = 0.0
+    for t, txt in commentary_lines(rs):
+        t = max(t, free + 0.15)
+        x = tts(txt, voice)
+        x = x / (np.abs(x).max() + 1e-9) * 0.75
+        i0 = int(t * SR)
+        if i0 + len(x) > n:
+            continue
+        vo[i0:i0 + len(x)] += x
+        free = t + len(x) / SR
+        print(f"commentary {t:5.1f}s {txt}", flush=True)
+    return vo
 
 
 def ffmpeg():
