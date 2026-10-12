@@ -320,11 +320,31 @@ def commentary_lines(rs):
     return [(t, txt) for t, txt in sorted(ev) if 0.2 <= t < end - 0.8]
 
 
+PIPER = "en_US-ryan-high"
+
+
+def piper_wav(text, wav):
+    """Yedek ses (edge-tts 403 verirken): Piper, model Hugging Face'in sabit v1.0.0 etiketinden."""
+    import urllib.request
+    d = os.path.join(os.path.expanduser("~"), ".cache", "piper-voices"); os.makedirs(d, exist_ok=True)
+    model = os.path.join(d, PIPER + ".onnx")
+    base = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/" + PIPER
+    for ext in (".onnx", ".onnx.json"):
+        if not os.path.exists(os.path.join(d, PIPER + ext)):
+            urllib.request.urlretrieve(base + ext + "?download=true", os.path.join(d, PIPER + ext))
+    subprocess.run([sys.executable, "-m", "piper", "-m", model, "-f", wav], input=text, text=True, check=True,
+                   capture_output=True)
+
+
 def tts(text, voice):
     import asyncio, tempfile
-    import edge_tts
     mp3 = tempfile.mktemp(suffix=".mp3"); wav = mp3[:-4] + ".wav"
-    asyncio.run(edge_tts.Communicate(text, voice, rate="+12%").save(mp3))
+    try:
+        import edge_tts
+        asyncio.run(edge_tts.Communicate(text, voice, rate="+12%").save(mp3))
+    except Exception as e:  # noqa: BLE001
+        print("edge-tts failed, piper:", str(e)[:80], flush=True)
+        mp3 = mp3[:-4] + "_p.wav"; piper_wav(text, mp3)
     subprocess.run([ffmpeg(), "-y", "-v", "error", "-i", mp3, "-ar", str(SR), "-ac", "1", wav], check=True)
     with wave.open(wav) as w:
         x = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float64) / 32768
