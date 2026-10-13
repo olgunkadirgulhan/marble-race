@@ -10,7 +10,11 @@ def meta():
     n = T.N
     if T.THEME == "countries":
         star = next((l for c, l in zip(T.ENTRANTS, T.LABELS) if c in ("US", "GB", "CA", "BR", "MX", "IN", "TR")), T.LABELS[0])
+        trio = " vs ".join(l.title() for l in T.LABELS[:3])   # 2026-10-13: sabit 6 başlık tekrar ediyordu → yarıştaki ülkeler başlıkta
         title = _pick([
+            f"{trio}... Which Country Wins? 🏁 #shorts",
+            f"{trio} + {n - 3} More: Country Marble Race 🌍 #shorts",
+            f"Can {star.title()} Beat {T.LABELS[-1].title()}? 🏁 Marble Race #shorts",
             "Which Country Wins? 🏁 Marble Race #shorts",
             f"{n} Countries, Only 1 Winner! 🌍 Marble Race #shorts",
             f"Can {star.title()} Win This Marble Race? 🏁 #shorts",
@@ -26,7 +30,10 @@ def meta():
         tags = ["marble race", "country marble race", "countries race", "marble run", "which country wins",
                 "flag race", "satisfying", "physics simulation", "shorts"] + [l.lower() for l in T.LABELS[:4]]
     else:
+        trio = " vs ".join(l.title() for l in T.LABELS[:3])
         title = _pick([
+            f"{trio}... Which Color Wins? 🎨 #shorts",
+            f"{trio} + {n - 3} More: Color Marble Race 🌈 #shorts",
             "Which Color Wins? 🏁 Marble Race #shorts",
             "Pick Your Color! 🎨 Satisfying Marble Race #shorts",
             f"{n} Marbles, 1 Winner! Which Color? #shorts",
