@@ -1,0 +1,18 @@
+name: tts-test
+# Spiker sesinin (edge-tts → Piper yedeği) çalıştığını dener
+on: workflow_dispatch
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -q -r requirements.txt
+      - run: |
+          python - <<'PY'
+          import post
+          x = post.tts("And they're off! The blue marble takes the lead!", post.VOICES[0])
+          print("SES SÜRESİ", round(len(x) / post.SR, 2), "sn, tepe", round(float(abs(x).max()), 3))
+          PY
