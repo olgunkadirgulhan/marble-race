@@ -6,4 +6,5 @@ jobs:
     steps:
       - env:
           K: ${{ secrets.GEMINI_API_KEY }}
-        run: echo "anahtar uzunluk ${#K}: $(curl -s -o /dev/null -w '%{http_code}' -H "x-goog-api-key: $K" -H 'Content-Type: application/json' -d '{"contents":[{"parts":[{"text":"say ok"}]}]}' https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent)"
+        run: |
+          echo "anahtar uzunluk ${#K}: $(curl -s -o /dev/null -w '%{http_code}' -H "x-goog-api-key: $K" -H 'Content-Type: application/json' -d '{"contents":[{"parts":[{"text":"say ok"}]}]}' https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent)"
