@@ -12,7 +12,12 @@ jobs:
       - run: pip install -q -r requirements.txt
       - run: |
           python - <<'PY'
-          import post
-          x = post.tts("And they're off! The blue marble takes the lead!", post.VOICES[0])
-          print("SES SÜRESİ", round(len(x) / post.SR, 2), "sn, tepe", round(float(abs(x).max()), 3))
+          import ast, os, sys, subprocess, wave, numpy as np
+          src = open("post.py").read(); tree = ast.parse(src)
+          keep = [n for n in tree.body if (isinstance(n, ast.FunctionDef) and n.name in ("piper_wav", "tts", "ffmpeg"))
+                  or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") in ("PIPER", "SR", "VOICES") for t in n.targets))]
+          g = {"os": os, "sys": sys, "subprocess": subprocess, "wave": wave, "np": np}
+          exec(compile(ast.Module(body=keep, type_ignores=[]), "post_part", "exec"), g)
+          x = g["tts"]("And they're off! The blue marble takes the lead!", g["VOICES"][0])
+          print("SES SÜRESİ", round(len(x) / g["SR"], 2), "sn, tepe", round(float(abs(x).max()), 3))
           PY
