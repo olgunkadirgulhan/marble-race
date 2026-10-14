@@ -130,6 +130,13 @@ jobs:
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
           YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
         run: python publish.py chunks "${{ inputs.publish_at }}"
+      - name: Social (Instagram/TikTok publisher)
+        uses: actions/upload-artifact@v5
+        with:
+          name: social-${{ needs.plan.outputs.tag }}
+          path: social/
+          retention-days: 3
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v5
         with:
           name: video-${{ needs.plan.outputs.tag }}

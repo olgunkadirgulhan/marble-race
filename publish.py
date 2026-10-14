@@ -104,6 +104,23 @@ def upload(mp4, publish_at, thumb=None):
     return vid, title, status.get("publishAt", "now")
 
 
+def social(mp4, vid, title, when):
+    """Every race -> social/ (artifact 'social-<tag>'): fenek-shorts social publisher posts it to Instagram/TikTok
+    once the YouTube premiere time (not_before) has passed."""
+    import re, shutil
+    soc = os.path.join(HERE, "social")
+    os.makedirs(soc, exist_ok=True)
+    shutil.copy(mp4, os.path.join(soc, "video.mp4"))
+    clean = re.sub(r"\s*#\w+", "", title).strip()
+    tiktok = f"{clean}\nPick your flag before the start 👇\n\n#marblerace #countries #satisfying #flags #fyp"
+    insta = (f"{clean}\n\nPick your flag before the start 👇 Follow for a new race every day\n\n"
+             "#marblerace #satisfying #countries #flags #asmr")
+    post = {"channel": "Marble Rush Arena", "title": clean, "url": f"https://youtube.com/shorts/{vid}",
+            "tiktok": tiktok, "instagram": insta, "not_before": when if when != "now" else ""}
+    with open(os.path.join(soc, "post.json"), "w", encoding="utf-8") as fh:
+        json.dump(post, fh, ensure_ascii=False, indent=1)
+
+
 def log(vid, title, when):
     d = os.path.join(HERE, "records", "published")
     os.makedirs(d, exist_ok=True)
@@ -130,4 +147,5 @@ if __name__ == "__main__":
         sys.exit(0)
     vid, title, when = upload(mp4, publish_at)
     log(vid, title, when)
+    social(mp4, vid, title, when)
     print("uploaded", vid, title, when)
