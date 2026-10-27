@@ -36,7 +36,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - if: steps.chk.outputs.go
-        run: pip install -r requirements.txt
+        run: pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
       - if: steps.chk.outputs.go
         run: python upload_pending.py
       - if: steps.chk.outputs.go

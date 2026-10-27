@@ -1,5 +1,5 @@
 name: tts-test
-# Spiker sesinin (edge-tts → Piper yedeği) çalıştığını dener
+# Spiker sesinin (Kokoro → Piper yedeği) çalıştığını dener; Kokoro'ya düşmeden çalışmalı
 on: workflow_dispatch
 jobs:
   t:
@@ -9,15 +9,17 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install -q -r requirements.txt
+      - run: pip install -q --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
       - run: |
           python - <<'PY'
           import ast, os, sys, subprocess, wave, numpy as np
           src = open("post.py").read(); tree = ast.parse(src)
           keep = [n for n in tree.body if (isinstance(n, ast.FunctionDef) and n.name in ("piper_wav", "tts", "ffmpeg"))
-                  or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") in ("PIPER", "SR", "VOICES") for t in n.targets))]
+                  or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") in ("PIPER", "SR", "VOICES", "_kokoro") for t in n.targets))]
           g = {"os": os, "sys": sys, "subprocess": subprocess, "wave": wave, "np": np}
           exec(compile(ast.Module(body=keep, type_ignores=[]), "post_part", "exec"), g)
           x = g["tts"]("And they're off! The blue marble takes the lead!", g["VOICES"][0])
           print("SES SÜRESİ", round(len(x) / g["SR"], 2), "sn, tepe", round(float(abs(x).max()), 3))
+          assert g["_kokoro"], "Kokoro çalışmadı (Piper yedeğine düştü)"
+          print("KOKORO OK:", list(g["_kokoro"]))
           PY

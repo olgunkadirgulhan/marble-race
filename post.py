@@ -283,7 +283,8 @@ def synth_audio(path):
         w.writeframes((out * 32767).astype(np.int16).tobytes())
 
 
-VOICES = ["en-US-GuyNeural", "en-US-ChristopherNeural", "en-GB-RyanNeural", "en-US-EricNeural"]
+VOICES = ["am_puck", "am_eric", "am_liam", "bm_lewis"]   # spiker sesleri (Kokoro, Apache-2.0: ücretsiz, ticari kullanım serbest); yarışa göre biri
+_kokoro = {}
 
 
 def spoken(i):
@@ -340,10 +341,14 @@ def tts(text, voice):
     import asyncio, tempfile
     mp3 = tempfile.mktemp(suffix=".mp3"); wav = mp3[:-4] + ".wav"
     try:
-        import edge_tts
-        asyncio.run(edge_tts.Communicate(text, voice, rate="+12%").save(mp3))
+        import soundfile as sf
+        from kokoro import KPipeline
+        code = "b" if voice[0] == "b" else "a"
+        if code not in _kokoro: _kokoro[code] = KPipeline(lang_code=code)
+        mp3 = mp3[:-4] + "_k.wav"
+        sf.write(mp3, np.concatenate([a for _, _, a in _kokoro[code](text, voice=voice, speed=1.12)]), 24000)
     except Exception as e:  # noqa: BLE001
-        print("edge-tts failed, piper:", str(e)[:80], flush=True)
+        print("kokoro failed, piper:", str(e)[:80], flush=True)
         mp3 = mp3[:-4] + "_p.wav"; piper_wav(text, mp3)
     subprocess.run([ffmpeg(), "-y", "-v", "error", "-i", mp3, "-ar", str(SR), "-ac", "1", wav], check=True)
     with wave.open(wav) as w:
