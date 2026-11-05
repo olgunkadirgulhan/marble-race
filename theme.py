@@ -34,7 +34,7 @@ FLAG_RGB = {"US": (60, 59, 110), "GB": (1, 33, 105), "TR": (227, 10, 23), "JP": 
 POPULAR = ["US", "GB", "CA", "BR", "MX", "IN", "DE", "FR", "JP", "TR", "IT", "ES", "AR", "KR"]
 
 _r = random.Random(SEED)
-THEME = ["countries", "colors", "countries"][(DATE.toordinal() + SLOT) % 3]
+THEME = "countries"   # 2026-11-02 veri: renk yarışı medyan 192, ülke yarışı 1.015 → hep ülke
 N = 10 if THEME == "countries" else 8
 if THEME == "countries":
     pop = _r.sample(POPULAR, 5)
