@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   queue:
+    if: vars.CONTENT_MODE == ''   # 2026-11-08: kanal Guess the Flag konseptinde (flag.yml) → eski marble akışı kapalı
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:

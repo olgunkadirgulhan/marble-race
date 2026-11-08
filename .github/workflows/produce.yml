@@ -23,6 +23,7 @@ env:
 
 jobs:
   plan:
+    if: vars.CONTENT_MODE == ''   # 2026-11-08: kanal Guess the Flag konseptinde (flag.yml) → eski marble akışı kapalı
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     outputs:
@@ -61,6 +62,7 @@ jobs:
 
   render:
     needs: plan
+    if: vars.CONTENT_MODE == ''   # 2026-11-08: kanal Guess the Flag konseptinde (flag.yml) → eski marble akışı kapalı
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     strategy:
@@ -105,6 +107,7 @@ jobs:
 
   publish:
     needs: [plan, render]
+    if: vars.CONTENT_MODE == ''   # 2026-11-08: kanal Guess the Flag konseptinde (flag.yml) → eski marble akışı kapalı
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # concurrency grubu YOK: GitHub bir grupta yalnız 1 bekleyen iş tutar, fazlasını İPTAL eder (2026-10-08 3 yarış böyle
