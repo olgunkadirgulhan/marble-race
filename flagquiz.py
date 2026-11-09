@@ -111,8 +111,11 @@ def frame_fn(p):
     return f, total, events
 
 
-TITLES = ['Guess the Flag! 6 Levels, Easy to Expert 🌍 #{n}', 'Flag Quiz: Can You Reach Level 6? 🏳️ #{n}',
-          'How Many Flags Do You Know? (Level 1-6) #{n}', 'Guess the Country by Its Flag 🌎 Quiz #{n}', 'Only Experts Pass Level 6: Flag Quiz #{n}']
+# 2026-11-09: 576 kombinasyon (3/gün ≈ 6 ay)
+_HOOKS = ['Guess the Flag!', 'Flag Quiz: Can You Reach Level 6?', 'How Many Flags Do You Know?', 'Guess the Country by Its Flag!', 'Only Experts Pass Level 6!', 'Name This Flag!', 'World Flags Challenge!', 'Flag Detective Quiz!', 'Can You Beat the Flag Quiz?', 'Name That Country!', 'The Real Geography Test!', 'Which Country Is This?', 'Flags of the World Quiz!', 'Think You Know Flags?', 'Geography Nerds Only!', 'World Traveler Flag Test!', 'Spot the Country!', 'Test Your Flag Knowledge!', 'Whose Flag Is This?', 'Can You Name All 6 Flags?', 'Flag Guessing Game!', 'Country Flag Challenge!', 'Beat the Flag Levels!', 'Globe Trotter Quiz!']
+_EM = ['🌍','🏳️','🌎','🗺️']
+_TAILS = ['6 Levels {0}', 'Level 1-6 {1}', 'Easy to Hard {2}', '6 Rounds {3}', 'Can You Get 6/6? {0}', 'Hard Mode at the End {1}', 'Comment Your Score {2}', 'Beat Your Friends {3}', '3 Seconds Each {0}', 'No Cheating {1}', 'Level 6 Is Tough {2}', 'How Far Can You Go? {3}', 'Daily Quiz {0}', 'Quick Brain Test {1}', 'Try It With Family {2}', 'Keep Your Streak {3}', 'Six Chances {0}', 'Answer Before Time Ends {1}', 'Fast Round {2}', 'Play Along {3}', 'Score Yourself {0}', 'Test Yourself {1}', 'Challenge a Friend {2}', 'Beat the Timer {3}']
+TITLES = [f'{h} {t.format(*_EM)} #{{n}}' for h in _HOOKS for t in _TAILS]
 
 
 def main():
@@ -124,7 +127,7 @@ def main():
     n = len(rows) + 1; p = dict(qs=qs, n=n, seed=rnd.randrange(10 ** 6))
     seen = {K.tkey(r['title']) for r in rows}
     opts = [t.format(n=n) for t in TITLES]; rnd.shuffle(opts)
-    title = next(o for o in opts if K.tkey(o) not in seen)
+    title = next((o for o in opts if K.tkey(o) not in seen), opts[0])
     desc = ('Guess the flag! 6 levels from easy to expert.\n\n' + '\n'.join(f"Level {q['lv']}: {NAME[q['c']]}" for q in qs)
             + '\n\nWhat level did you reach? Comment 1-6 👇 New flag quiz every day.\n\n'
             'Flag images: flagcdn.com (public domain national flags).\n\n#shorts #flags #flagquiz #geography #quiz')
