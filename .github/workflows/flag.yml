@@ -3,6 +3,8 @@ name: flag
 on:
   schedule:
     - cron: "43 13-22 * * *"
+    - cron: "11 14-21 * * *"
+    - cron: "27 14-21 * * *"
   workflow_dispatch:
     inputs:
       auto:
